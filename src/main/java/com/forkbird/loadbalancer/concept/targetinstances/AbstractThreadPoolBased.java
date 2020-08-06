@@ -40,13 +40,12 @@ public abstract class AbstractThreadPoolBased implements TargetInstance {
             executor.execute(() -> {
                 Payload p = null;
                 try {
-                    p = payloadQueue.take();
+                    p = payloadQueue.peek();
                     p.setHandled(true);
                     doHandleRequest(p);
-                } catch (InterruptedException e) {
-                    throw new RuntimeException(e);
                 } finally {
                     callback.onComplete(p);
+                    payloadQueue.remove(p);
                 }
             });
         } else {
