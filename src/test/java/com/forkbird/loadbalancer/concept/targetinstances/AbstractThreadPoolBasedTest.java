@@ -1,7 +1,13 @@
 package com.forkbird.loadbalancer.concept.targetinstances;
 
 import com.forkbird.loadbalancer.concept.Payload;
+import com.forkbird.loadbalancer.concept.targetinstances.AbstractThreadPoolBased.Callback;
 import org.junit.jupiter.api.Test;
+
+import java.lang.Thread.UncaughtExceptionHandler;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -10,19 +16,18 @@ class AbstractThreadPoolBasedTest {
     @Test
     void should_handle_payload() throws InterruptedException {
         //given
-        TargetInstance targetInstance = createTargetInstance(1, 0, (t, e) -> {
+        BlockingQueue<Payload> handledPayloads = new ArrayBlockingQueue<>(1);
+        TargetInstance targetInstance = createTargetInstance(1, 0, createCallback(handledPayloads), (t, e) -> {
         });
         try {
-            Payload payload = new Payload();
-            payload.setRequest("hello");
-
             //when
-            targetInstance.handleRequest(payload);
-            Thread.sleep(1000);
+            targetInstance.handleRequest(createPayload("hello"));
+            Payload handledPayload = handledPayloads.poll(3, TimeUnit.SECONDS);
 
             //then
-            assertEquals("Responding to: hello", payload.getResponse());
-            assertEquals(targetInstance, payload.getHandlingTargetInstance());
+            assertNotNull(handledPayload);
+            assertEquals("Responding to: hello", handledPayload.getResponse());
+            assertEquals(targetInstance, handledPayload.getHandlingTargetInstance());
         } finally {
             targetInstance.shutdown();
         }
@@ -31,35 +36,36 @@ class AbstractThreadPoolBasedTest {
     @Test
     void should_reject_execution_when_thread_pool_exceeded() throws InterruptedException {
         //given
-        TargetInstance targetInstance = createTargetInstance(2, 0, (t, e) -> {
+        BlockingQueue<Payload> handledPayloads = new ArrayBlockingQueue<>(2);
+        TargetInstance targetInstance = createTargetInstance(1, 0, createCallback(handledPayloads), (t, e) -> {
         });
         try {
-            Payload payload1 = createPayload("hello1");
-            Payload payload2 = createPayload("hello2");
-            Payload payload3 = createPayload("hello3");
-
             //when
-            targetInstance.handleRequest(payload1);
-            targetInstance.handleRequest(payload2);
-            targetInstance.handleRequest(payload3);
-            Thread.sleep(1000);
+            targetInstance.handleRequest(createPayload("hello1"));
+            targetInstance.handleRequest(createPayload("hello2"));
+            Payload payload1 = handledPayloads.poll(3, TimeUnit.SECONDS);
+            Payload payload2 = handledPayloads.poll(3, TimeUnit.SECONDS);
 
             //then
+            assertNotNull(payload1);
             assertEquals("Responding to: hello1", payload1.getResponse());
             assertEquals(targetInstance, payload1.getHandlingTargetInstance());
-            assertEquals("Responding to: hello2", payload2.getResponse());
-            assertEquals(targetInstance, payload2.getHandlingTargetInstance());
-            assertNull(payload3.getResponse());
-            assertNull(payload3.getHandlingTargetInstance());
+            assertTrue(payload1.isHandled());
+
+            assertNotNull(payload2);
+            assertNull(payload2.getResponse());
+            assertNull(payload2.getHandlingTargetInstance());
+            assertFalse(payload2.isHandled());
         } finally {
             targetInstance.shutdown();
         }
     }
 
     @Test
-    void should_calculate_load_properly() throws InterruptedException {
+    void should_calculate_load_properly() {
         //given
-        TargetInstance targetInstance = createTargetInstance(4, 1000, (t, e) -> {
+        BlockingQueue<Payload> handledPayloads = new ArrayBlockingQueue<>(3);
+        TargetInstance targetInstance = createTargetInstance(4, Integer.MAX_VALUE, createCallback(handledPayloads), (t, e) -> {
         });
         try {
             //when
@@ -68,32 +74,34 @@ class AbstractThreadPoolBasedTest {
             targetInstance.handleRequest(createPayload("hello"));
 
             //then
-            assertTrue(new Float(0.75f).equals(targetInstance.getLoad()));
+            assertEquals(new Float(0.75f), targetInstance.getLoad());
         } finally {
             targetInstance.shutdown();
         }
     }
 
     @Test
-    void should_handle_exception_in_handling() throws InterruptedException {
+    void should_handle_exception_in_payload_handling() throws InterruptedException {
         //given
+        BlockingQueue<Payload> handledPayloads = new ArrayBlockingQueue<>(2);
         TestExceptionHandler uncaughtExceptionHandler = new TestExceptionHandler();
-        TargetInstance targetInstance = createTargetInstance(uncaughtExceptionHandler);
+        TargetInstance targetInstance = createTargetInstance(createCallback(handledPayloads), uncaughtExceptionHandler);
         try {
-            Payload payload1 = createPayload("fail me");
-            Payload payload2 = createPayload("I'm fine");
-
             //when
-            targetInstance.handleRequest(payload1);
-            targetInstance.handleRequest(payload2);
-            Thread.sleep(1000);
+            targetInstance.handleRequest(createPayload("fail me"));
+            Payload payload1 = handledPayloads.poll(3, TimeUnit.SECONDS);
+            targetInstance.handleRequest(createPayload("I'm fine"));
+            Payload payload2 = handledPayloads.poll(3, TimeUnit.SECONDS);
+
 
             //then
+            assertNotNull(payload1);
             assertNull(payload1.getResponse());
             assertEquals(targetInstance, payload1.getHandlingTargetInstance());
             assertEquals(IllegalArgumentException.class, uncaughtExceptionHandler.getExpected().getClass());
             assertEquals("fail me", uncaughtExceptionHandler.getExpected().getMessage());
 
+            assertNotNull(payload2);
             assertEquals("Responding to: I'm fine", payload2.getResponse());
             assertEquals(targetInstance, payload2.getHandlingTargetInstance());
         } finally {
@@ -101,8 +109,8 @@ class AbstractThreadPoolBasedTest {
         }
     }
 
-    private TargetInstance createTargetInstance(int threadPoolSize, int handlingDelay, Thread.UncaughtExceptionHandler handler) {
-        return new AbstractThreadPoolBased("instanceName", threadPoolSize, handler) {
+    private TargetInstance createTargetInstance(int threadPoolSize, int handlingDelay, Callback callback, UncaughtExceptionHandler handler) {
+        return new AbstractThreadPoolBased("instanceName", threadPoolSize, callback, handler) {
             @Override
             protected void doHandleRequest(Payload payload) {
                 payload.setResponse(String.format("Responding to: %s", payload.getRequest()));
@@ -115,8 +123,8 @@ class AbstractThreadPoolBasedTest {
         };
     }
 
-    private TargetInstance createTargetInstance(TestExceptionHandler uncaughtExceptionHandler) {
-        return new AbstractThreadPoolBased("instanceName", 2, uncaughtExceptionHandler) {
+    private TargetInstance createTargetInstance(Callback callback, TestExceptionHandler uncaughtExceptionHandler) {
+        return new AbstractThreadPoolBased("instanceName", 2, callback, uncaughtExceptionHandler) {
             @Override
             protected void doHandleRequest(Payload payload) {
                 if (payload.getRequest().equals("fail me")) {
@@ -134,7 +142,11 @@ class AbstractThreadPoolBasedTest {
         return payload;
     }
 
-    private class TestExceptionHandler implements Thread.UncaughtExceptionHandler {
+    private Callback createCallback(BlockingQueue<Payload> handledPayloads) {
+        return handledPayloads::offer;
+    }
+
+    private static class TestExceptionHandler implements UncaughtExceptionHandler {
 
         private Throwable expected;
 
@@ -147,7 +159,7 @@ class AbstractThreadPoolBasedTest {
             }
         }
 
-        public Throwable getExpected() {
+        Throwable getExpected() {
             return expected;
         }
     }

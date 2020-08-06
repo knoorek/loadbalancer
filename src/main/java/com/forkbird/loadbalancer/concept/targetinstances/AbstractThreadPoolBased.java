@@ -11,21 +11,18 @@ import java.util.concurrent.*;
 
 public abstract class AbstractThreadPoolBased implements TargetInstance {
 
-    public static final Duration EXECUTOR_SHUTDOWN_TIMEOUT = Duration.ofSeconds(10);
-    protected static final UncaughtExceptionHandler UNCAUGHT_EXCEPTION_HANDLERHANDLER = (t, e) -> e.printStackTrace();
+    private static final Duration EXECUTOR_SHUTDOWN_TIMEOUT = Duration.ofSeconds(10);
+    protected static final UncaughtExceptionHandler UNCAUGHT_EXCEPTION_HANDLER = (t, e) -> e.printStackTrace();
 
     private static final Logger logger = LoggerFactory.getLogger(ClientServer.class);
 
     private final ExecutorService executor;
+    private final Callback callback;
     private final String instanceName;
 
     private BlockingQueue<Payload> payloadQueue;
 
-    public AbstractThreadPoolBased(String instanceName, int threadPoolSize) {
-        this(instanceName, threadPoolSize, UNCAUGHT_EXCEPTION_HANDLERHANDLER);
-    }
-
-    public AbstractThreadPoolBased(String instanceName, int threadPoolSize, UncaughtExceptionHandler uncaughtExceptionHandler) {
+    public AbstractThreadPoolBased(String instanceName, int threadPoolSize, Callback callback, UncaughtExceptionHandler uncaughtExceptionHandler) {
         this.instanceName = instanceName;
         this.payloadQueue = new ArrayBlockingQueue<>(threadPoolSize);
         this.executor = Executors.newSingleThreadExecutor(r -> {
@@ -33,6 +30,7 @@ public abstract class AbstractThreadPoolBased implements TargetInstance {
             t.setUncaughtExceptionHandler(uncaughtExceptionHandler);
             return t;
         });
+        this.callback = callback;
     }
 
     @Override
@@ -40,14 +38,21 @@ public abstract class AbstractThreadPoolBased implements TargetInstance {
         if (payloadQueue.offer(payload)) {
             payload.setHandlingTargetInstance(this);
             executor.execute(() -> {
+                Payload p = null;
                 try {
-                    doHandleRequest(payloadQueue.take());
+                    p = payloadQueue.take();
+                    p.setHandled(true);
+                    doHandleRequest(p);
                 } catch (InterruptedException e) {
                     throw new RuntimeException(e);
+                } finally {
+                    callback.onComplete(p);
                 }
             });
         } else {
             logger.warn(String.format("Rejected payload %s due to full queue on %s.", payload.getRequest(), instanceName));
+            payload.setHandled(false);
+            callback.onComplete(payload);
         }
     }
 
@@ -71,4 +76,8 @@ public abstract class AbstractThreadPoolBased implements TargetInstance {
     }
 
     protected abstract void doHandleRequest(Payload payload);
+
+    public interface Callback {
+        void onComplete(Payload payload);
+    }
 }

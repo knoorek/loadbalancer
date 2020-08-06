@@ -9,7 +9,6 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.lang.Thread.UncaughtExceptionHandler;
 import java.net.Socket;
-import java.net.UnknownHostException;
 
 public class ClientServer extends AbstractThreadPoolBased {
 
@@ -18,12 +17,18 @@ public class ClientServer extends AbstractThreadPoolBased {
     private final int targetHostPort;
     private final int timeout;
 
-    public ClientServer(String instanceName, int threadPoolSize, String targetHost, int targetHostPort, int timeout) {
-        this(instanceName, threadPoolSize, targetHost, targetHostPort, timeout, UNCAUGHT_EXCEPTION_HANDLERHANDLER);
+    public ClientServer(String instanceName, int threadPoolSize, String targetHost, int targetHostPort, int timeout, Callback callback) {
+        this(instanceName, threadPoolSize, targetHost, targetHostPort, timeout, callback, UNCAUGHT_EXCEPTION_HANDLER);
     }
 
-    public ClientServer(String instanceName, int threadPoolSize, String targetHost, int targetHostPort, int timeout, UncaughtExceptionHandler uncaughtExceptionHandler) {
-        super(instanceName, threadPoolSize, uncaughtExceptionHandler);
+    public ClientServer(String instanceName,
+                        int threadPoolSize,
+                        String targetHost,
+                        int targetHostPort,
+                        int timeout,
+                        Callback callback,
+                        UncaughtExceptionHandler uncaughtExceptionHandler) {
+        super(instanceName, threadPoolSize, callback, uncaughtExceptionHandler);
         this.instanceName = instanceName;
         this.targetHost = targetHost;
         this.targetHostPort = targetHostPort;
@@ -35,13 +40,11 @@ public class ClientServer extends AbstractThreadPoolBased {
         try (
                 Socket socket = new Socket(targetHost, targetHostPort);
                 PrintWriter targetOut = new PrintWriter(socket.getOutputStream(), true);
-                BufferedReader targetIn = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+                BufferedReader targetIn = new BufferedReader(new InputStreamReader(socket.getInputStream()))
         ) {
             socket.setSoTimeout(timeout);
             targetOut.println(payload.getRequest());
             payload.setResponse(targetIn.readLine());
-        } catch (UnknownHostException e) {
-            throw new RuntimeException(String.format("Error sending %s with %s", payload, this), e);
         } catch (IOException e) {
             throw new RuntimeException(String.format("Error sending %s with %s", payload, this), e);
         }

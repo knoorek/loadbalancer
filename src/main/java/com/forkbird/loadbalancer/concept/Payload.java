@@ -7,6 +7,7 @@ public class Payload {
     private TargetInstance handlingTargetInstance;
     private String request;
     private String response;
+    private boolean handled;
 
     public TargetInstance getHandlingTargetInstance() {
         return handlingTargetInstance;
@@ -30,6 +31,14 @@ public class Payload {
 
     public void setResponse(String response) {
         this.response = response;
+    }
+
+    public boolean isHandled() {
+        return handled;
+    }
+
+    public void setHandled(boolean handled) {
+        this.handled = handled;
     }
 
     @Override
