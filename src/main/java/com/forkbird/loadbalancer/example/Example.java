@@ -15,22 +15,17 @@ public class Example {
 
     public static void main(String[] args) throws InterruptedException {
         int port = 8080;
-        BlockingQueue<Payload> payloads = new ArrayBlockingQueue<>(1);
         TestServer testServer = startTestServer(port);
-        Callback<Payload> callback = payloads::offer;
-        LoadBalancer<Payload> loadBalancer = new LoadBalancer<>(
-                Arrays.asList(
-                        new ClientServer("instance1", 1, "localhost", port, 3000, callback),
-                        new ClientServer("instance2", 1, "localhost", port, 3000, callback),
-                        new ClientServer("instance3", 1, "localhost", port, 3000, callback)),
-                new RoundRobin<>());
+        BlockingQueue<Payload> payloads = new ArrayBlockingQueue<>(1);
+        LoadBalancer<Payload> loadBalancer = createPayloadLoadBalancer(port, payloads::offer);
 
         try {
-            loadBalancer.handleRequest(getPayload("payload1"));
+
+            loadBalancer.handleRequest(createPayload("payload1"));
             Payload handledPayload = payloads.poll(3, TimeUnit.SECONDS);
             System.out.printf("%s: %s%n", handledPayload.getHandlingTargetInstance(), handledPayload.getResponse());
 
-            loadBalancer.handleRequest(getPayload("payload2"));
+            loadBalancer.handleRequest(createPayload("payload2"));
             handledPayload = payloads.poll(3, TimeUnit.SECONDS);
             System.out.printf("%s: %s%n", handledPayload.getHandlingTargetInstance(), handledPayload.getResponse());
 
@@ -40,6 +35,15 @@ public class Example {
         }
     }
 
+    private static LoadBalancer<Payload> createPayloadLoadBalancer(int port, Callback<Payload> callback) {
+        return new LoadBalancer<>(
+                    Arrays.asList(
+                            new ClientServer("instance1", 1, "localhost", port, 3000, callback),
+                            new ClientServer("instance2", 1, "localhost", port, 3000, callback),
+                            new ClientServer("instance3", 1, "localhost", port, 3000, callback)),
+                    new RoundRobin<>());
+    }
+
     private static TestServer startTestServer(int port) {
         TestServer testServer = new TestServer(port, 0);
         new Thread(testServer).start();
@@ -47,7 +51,7 @@ public class Example {
         return testServer;
     }
 
-    private static Payload getPayload(String message) {
+    private static Payload createPayload(String message) {
         Payload payload = new Payload();
         payload.setRequest(message);
         return payload;
