@@ -24,7 +24,7 @@ public abstract class ConcurrentBase<T extends Payload> implements TargetInstanc
         this.payloadQueue = new ArrayBlockingQueue<>(threadPoolSize);
         this.instanceName = instanceName;
         this.callback = callback;
-        this.executor = Executors.newSingleThreadExecutor(r -> {
+        this.executor = Executors.newFixedThreadPool(threadPoolSize, r -> {
             Thread t = new Thread(r);
             t.setUncaughtExceptionHandler(uncaughtExceptionHandler);
             return t;
