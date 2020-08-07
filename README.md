@@ -1,4 +1,4 @@
-= loadbalancer
+# loadbalancer
 
 A sample loadbalancer. 'concept' package contains its basic tested logic.
 There are two load balancing 'LoadBalancingStrategy' implementations ('RoundRobin' and 'LoadBased') that select 'TargetInstance' to use for generic 'Payload' handling.
