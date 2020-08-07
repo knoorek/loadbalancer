@@ -2,7 +2,7 @@ package com.forkbird.loadbalancer.concept.targetinstances;
 
 import com.forkbird.loadbalancer.concept.Payload;
 
-public class TestTargetInstance implements TargetInstance {
+public class TestTargetInstance implements TargetInstance<Payload> {
 
     private final String instanceName;
     private final float load;

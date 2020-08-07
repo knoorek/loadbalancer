@@ -1,15 +1,16 @@
 package com.forkbird.loadbalancer.concept.strategies;
 
+import com.forkbird.loadbalancer.concept.Payload;
 import com.forkbird.loadbalancer.concept.targetinstances.TargetInstance;
 
 import java.util.List;
 
-public class LoadBased implements LoadBalancingStrategy {
+public class LoadBased<T extends Payload> implements LoadBalancingStrategy<T> {
 
     private final float maxDesiredLoad = 0.75f;
 
     @Override
-    public TargetInstance findHostToHandlePayload(List<TargetInstance> targetInstances) {
+    public TargetInstance<T> findHostToHandlePayload(List<TargetInstance<T>> targetInstances) {
         return targetInstances.stream().reduce((targetHost, targetHost2) -> {
             if (targetHost.getLoad() < maxDesiredLoad) {
                 return targetHost;

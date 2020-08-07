@@ -11,20 +11,20 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-public class LoadBalancerE2ETest {
+class LoadBalancerE2ETest {
 
     @Test
     void should_select_target_host_with_round_robin_strategy() {
-        LoadBalancer loadBalancer = null;
+        LoadBalancer<Payload> loadBalancer = null;
         try {
             //given
-            TargetInstance expected = new TestTargetInstance("1", 0.6f);
-            List<TargetInstance> targetInstances = Arrays.asList(
+            TargetInstance<Payload> expected = new TestTargetInstance("1", 0.6f);
+            List<TargetInstance<Payload>> targetInstances = Arrays.asList(
                     expected,
                     new TestTargetInstance("2", 0.5f),
                     new TestTargetInstance("3", 0.2f),
                     new TestTargetInstance("4", 0.1f));
-            loadBalancer = new LoadBalancer(targetInstances, new RoundRobin());
+            loadBalancer = new LoadBalancer<>(targetInstances, new RoundRobin<>());
             Payload payload = new Payload();
 
             //when
@@ -41,16 +41,16 @@ public class LoadBalancerE2ETest {
 
     @Test
     void should_select_target_host_with_load_based_strategy() {
-        LoadBalancer loadBalancer = null;
+        LoadBalancer<Payload> loadBalancer = null;
         try {
             //given
-            TargetInstance expected = new TestTargetInstance("1", 0.76f);
-            List<TargetInstance> targetInstances = Arrays.asList(
+            TargetInstance<Payload> expected = new TestTargetInstance("1", 0.76f);
+            List<TargetInstance<Payload>> targetInstances = Arrays.asList(
                     new TestTargetInstance("2", 0.78f),
                     new TestTargetInstance("3", 0.8f),
                     expected,
                     new TestTargetInstance("4", 0.9f));
-            loadBalancer = new LoadBalancer(targetInstances, new LoadBased());
+            loadBalancer = new LoadBalancer<>(targetInstances, new LoadBased<>());
             Payload payload = new Payload();
 
             //when

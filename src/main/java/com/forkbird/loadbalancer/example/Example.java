@@ -3,7 +3,7 @@ package com.forkbird.loadbalancer.example;
 import com.forkbird.loadbalancer.concept.LoadBalancer;
 import com.forkbird.loadbalancer.concept.Payload;
 import com.forkbird.loadbalancer.concept.strategies.RoundRobin;
-import com.forkbird.loadbalancer.concept.targetinstances.AbstractThreadPoolBased.Callback;
+import com.forkbird.loadbalancer.concept.targetinstances.ConcurrentBase.Callback;
 import com.forkbird.loadbalancer.example.targetinstances.ClientServer;
 
 import java.util.Arrays;
@@ -17,13 +17,13 @@ public class Example {
         int port = 8080;
         BlockingQueue<Payload> payloads = new ArrayBlockingQueue<>(1);
         TestServer testServer = startTestServer(port);
-        Callback callback = payloads::offer;
-        LoadBalancer loadBalancer = new LoadBalancer(
+        Callback<Payload> callback = payloads::offer;
+        LoadBalancer<Payload> loadBalancer = new LoadBalancer<>(
                 Arrays.asList(
                         new ClientServer("instance1", 1, "localhost", port, 3000, callback),
                         new ClientServer("instance2", 1, "localhost", port, 3000, callback),
                         new ClientServer("instance3", 1, "localhost", port, 3000, callback)),
-                new RoundRobin());
+                new RoundRobin<>());
 
         try {
             loadBalancer.handleRequest(getPayload("payload1"));

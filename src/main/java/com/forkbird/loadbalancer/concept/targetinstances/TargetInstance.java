@@ -2,9 +2,9 @@ package com.forkbird.loadbalancer.concept.targetinstances;
 
 import com.forkbird.loadbalancer.concept.Payload;
 
-public interface TargetInstance {
+public interface TargetInstance<T extends Payload> {
 
-    void handleRequest(Payload payload);
+    void handleRequest(T payload);
 
     float getLoad();
 

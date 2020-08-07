@@ -1,7 +1,7 @@
 package com.forkbird.loadbalancer.example.targetinstances;
 
 import com.forkbird.loadbalancer.concept.Payload;
-import com.forkbird.loadbalancer.concept.targetinstances.AbstractThreadPoolBased;
+import com.forkbird.loadbalancer.concept.targetinstances.ConcurrentExtendable;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -10,14 +10,13 @@ import java.io.PrintWriter;
 import java.lang.Thread.UncaughtExceptionHandler;
 import java.net.Socket;
 
-public class ClientServer extends AbstractThreadPoolBased {
+public class ClientServer extends ConcurrentExtendable<Payload> {
 
-    private final String instanceName;
     private final String targetHost;
     private final int targetHostPort;
     private final int timeout;
 
-    public ClientServer(String instanceName, int threadPoolSize, String targetHost, int targetHostPort, int timeout, Callback callback) {
+    public ClientServer(String instanceName, int threadPoolSize, String targetHost, int targetHostPort, int timeout, Callback<Payload> callback) {
         this(instanceName, threadPoolSize, targetHost, targetHostPort, timeout, callback, UNCAUGHT_EXCEPTION_HANDLER);
     }
 
@@ -26,10 +25,9 @@ public class ClientServer extends AbstractThreadPoolBased {
                         String targetHost,
                         int targetHostPort,
                         int timeout,
-                        Callback callback,
+                        Callback<Payload> callback,
                         UncaughtExceptionHandler uncaughtExceptionHandler) {
         super(instanceName, threadPoolSize, callback, uncaughtExceptionHandler);
-        this.instanceName = instanceName;
         this.targetHost = targetHost;
         this.targetHostPort = targetHostPort;
         this.timeout = timeout;

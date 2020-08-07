@@ -1,7 +1,7 @@
 package com.forkbird.loadbalancer.example.targetinstances;
 
 import com.forkbird.loadbalancer.concept.Payload;
-import com.forkbird.loadbalancer.concept.targetinstances.AbstractThreadPoolBased.Callback;
+import com.forkbird.loadbalancer.concept.targetinstances.ConcurrentBase.Callback;
 import com.forkbird.loadbalancer.concept.targetinstances.TargetInstance;
 import com.forkbird.loadbalancer.example.TestServer;
 import org.junit.jupiter.api.Test;
@@ -24,7 +24,7 @@ class ClientServerTest {
         TestServer testServer = startTestServer(0);
         BlockingQueue<Payload> handledPayloads = new ArrayBlockingQueue<>(1);
         try {
-            TargetInstance targetInstance = new ClientServer("instance", 1, hostName, serverPort, 3000, createCallback(handledPayloads));
+            TargetInstance<Payload> targetInstance = new ClientServer("instance", 1, hostName, serverPort, 3000, createCallback(handledPayloads));
             Payload payload = new Payload();
             payload.setRequest("hello");
 
@@ -41,7 +41,7 @@ class ClientServerTest {
         }
     }
 
-    private Callback createCallback(BlockingQueue<Payload> handledPayloads) {
+    private Callback<Payload> createCallback(BlockingQueue<Payload> handledPayloads) {
         return handledPayloads::offer;
     }
 

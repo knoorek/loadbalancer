@@ -1,10 +1,12 @@
 package com.forkbird.loadbalancer.concept;
 
+import com.forkbird.loadbalancer.concept.strategies.LoadBalancingStrategy;
 import com.forkbird.loadbalancer.concept.targetinstances.TargetInstance;
 import com.forkbird.loadbalancer.concept.targetinstances.TestTargetInstance;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -12,11 +14,13 @@ class LoadBalancerTest {
 
     @Test
     void should_load_balance_to_one_target_host() {
-        LoadBalancer loadBalancer = null;
+        LoadBalancer<Payload> loadBalancer = null;
         try {
             //given
-            TargetInstance targetInstance = new TestTargetInstance("instanceName");
-            loadBalancer = new LoadBalancer(Collections.singletonList(targetInstance), targetHosts -> targetHosts.get(0));
+            TargetInstance<Payload> targetInstance = new TestTargetInstance("instanceName");
+            List<TargetInstance<Payload>> targetInstances = Collections.singletonList(targetInstance);
+            LoadBalancingStrategy<Payload> loadBalancingStrategy = targetInstancesList -> targetInstancesList.get(0);
+            loadBalancer = new LoadBalancer<>(targetInstances, loadBalancingStrategy);
             Payload payload = new Payload();
 
             //when
