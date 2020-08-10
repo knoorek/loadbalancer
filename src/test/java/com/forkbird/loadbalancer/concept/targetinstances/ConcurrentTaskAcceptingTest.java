@@ -82,9 +82,9 @@ class ConcurrentTaskAcceptingTest {
         });
         try {
             //when
-            targetInstance.handleRequest(createPayload("hello"));
-            targetInstance.handleRequest(createPayload("hello"));
-            targetInstance.handleRequest(createPayload("hello"));
+            targetInstance.handleRequest(createPayload("hello", Integer.MAX_VALUE));
+            targetInstance.handleRequest(createPayload("hello", Integer.MAX_VALUE));
+            targetInstance.handleRequest(createPayload("hello", Integer.MAX_VALUE));
 
             //then
             assertEquals(new Float(0.75f), targetInstance.getLoad());
@@ -122,13 +122,22 @@ class ConcurrentTaskAcceptingTest {
     }
 
     private PayloadRunnable createPayload(String request) {
+        return createPayload(request, 0);
+    }
+
+    private PayloadRunnable createPayload(String request, int handlingDelay) {
         PayloadRunnable payload = new PayloadRunnable() {
             @Override
             public void run() {
-                if (request.equals("fail me")) {
-                    throw new IllegalArgumentException("fail me");
+                try {
+                    Thread.sleep(handlingDelay);
+                    if (request.equals("fail me")) {
+                        throw new IllegalArgumentException("fail me");
+                    }
+                    setResponse(String.format("Responding to: %s", request));
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
                 }
-                setResponse(String.format("Responding to: %s", request));
             }
         };
         payload.setRequest(request);

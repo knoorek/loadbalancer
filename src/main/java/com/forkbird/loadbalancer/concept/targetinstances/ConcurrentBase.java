@@ -21,14 +21,24 @@ public abstract class ConcurrentBase<T extends Payload> implements TargetInstanc
     protected final BlockingQueue<T> payloadQueue;
 
     public ConcurrentBase(int threadPoolSize, String instanceName, Callback<T> callback, UncaughtExceptionHandler uncaughtExceptionHandler) {
-        this.payloadQueue = new ArrayBlockingQueue<>(threadPoolSize);
-        this.instanceName = instanceName;
+        this(new ThreadPoolExecutor(threadPoolSize, threadPoolSize,
+                        0L, TimeUnit.MILLISECONDS,
+                        new LinkedBlockingQueue<>(threadPoolSize),
+                        r -> {
+                            Thread t = new Thread(r);
+                            t.setUncaughtExceptionHandler(uncaughtExceptionHandler);
+                            return t;
+                        }),
+                callback,
+                instanceName,
+                new ArrayBlockingQueue<>(threadPoolSize));
+    }
+
+    public ConcurrentBase(ExecutorService executor, Callback<T> callback, String instanceName, BlockingQueue<T> payloadQueue) {
+        this.executor = executor;
         this.callback = callback;
-        this.executor = Executors.newFixedThreadPool(threadPoolSize, r -> {
-            Thread t = new Thread(r);
-            t.setUncaughtExceptionHandler(uncaughtExceptionHandler);
-            return t;
-        });
+        this.instanceName = instanceName;
+        this.payloadQueue = payloadQueue;
     }
 
     @Override

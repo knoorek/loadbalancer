@@ -5,6 +5,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.lang.Thread.UncaughtExceptionHandler;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ExecutorService;
 
 import static com.forkbird.loadbalancer.concept.targetinstances.ConcurrentTaskAccepting.PayloadRunnable;
 
@@ -14,6 +16,10 @@ public class ConcurrentTaskAccepting<T extends PayloadRunnable> extends Concurre
 
     public ConcurrentTaskAccepting(int threadPoolSize, String instanceName, Callback<T> callback, UncaughtExceptionHandler uncaughtExceptionHandler) {
         super(threadPoolSize, instanceName, callback, uncaughtExceptionHandler);
+    }
+
+    public ConcurrentTaskAccepting(ExecutorService executor, Callback<T> callback, String instanceName, BlockingQueue<T> payloadQueue) {
+        super(executor, callback, instanceName, payloadQueue);
     }
 
     @Override
@@ -26,12 +32,12 @@ public class ConcurrentTaskAccepting<T extends PayloadRunnable> extends Concurre
                     peek.setHandled(true);
                     peek.run();
                 } finally {
-                    payloadQueue.remove(peek);
                     callback.onComplete(peek);
+                    payloadQueue.remove(peek);
                 }
             });
         } else {
-            logger.warn(String.format("Rejected payload %s due to full queue on %s.", payload.getRequest(), instanceName));
+            logger.warn(String.format("Rejected payload %s due to full queue on %s.", payload, instanceName));
             payload.setHandled(false);
             callback.onComplete(payload);
         }
