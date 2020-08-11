@@ -1,10 +1,7 @@
-package com.forkbird.loadbalancer.concept.strategies;
+package com.forkbird.loadbalancer.concept.targetinstances;
 
 import com.forkbird.loadbalancer.concept.targetinstances.ConcurrentBase.Callback;
-import com.forkbird.loadbalancer.concept.targetinstances.ConcurrentExtendable;
-import com.forkbird.loadbalancer.concept.targetinstances.ConcurrentTaskAccepting;
 import com.forkbird.loadbalancer.concept.targetinstances.ConcurrentTaskAccepting.PayloadRunnable;
-import com.forkbird.loadbalancer.concept.targetinstances.TargetInstance;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -33,16 +30,20 @@ class ConcurrentTargetInstanceLoadTest {
         TestCallback callback = new TestCallback(waitForAllThreadsToBeHandled);
         TargetInstance<PayloadRunnable> targetInstance = targetInstanceSupplier.get(threadPoolSize, executor, callback);
 
-        //when
-        for (int i = 0; i < maxThreadsToHandle; i++) {
-            targetInstance.handleRequest(new TestPayloadRunnable());
-        }
-        waitForAllThreadsToBeHandled.await(10, TimeUnit.SECONDS);
+        try {
+            //when
+            for (int i = 0; i < maxThreadsToHandle; i++) {
+                targetInstance.handleRequest(new TestPayloadRunnable());
+            }
+            waitForAllThreadsToBeHandled.await(10, TimeUnit.SECONDS);
 
-        //then
-        assertEquals(threadPoolSize, threadFactory.getCreatedThreadsCount());
-        assertTrue(callback.getHandledPayloadsCount() >= threadPoolSize);
-        assertEquals(maxThreadsToHandle - callback.getRejectedPayloadsCount(), callback.getHandledPayloadsCount());
+            //then
+            assertEquals(threadPoolSize, threadFactory.getCreatedThreadsCount());
+            assertTrue(callback.getHandledPayloadsCount() >= threadPoolSize);
+            assertEquals(maxThreadsToHandle - callback.getRejectedPayloadsCount(), callback.getHandledPayloadsCount());
+        } finally {
+            targetInstance.shutdown();
+        }
     }
 
     @ParameterizedTest
@@ -60,15 +61,19 @@ class ConcurrentTargetInstanceLoadTest {
         TargetInstance<PayloadRunnable> targetInstance = targetInstanceSupplier.get(threadPoolSize, executor, callback);
         Random exceptionsRandom = new Random();
 
-        //when
-        for (int i = 0; i < maxThreadsToHandle; i++) {
-            targetInstance.handleRequest(new TestPayloadRunnable(exceptionsRandom));
-        }
-        waitForAllThreadsToBeHandled.await(10, TimeUnit.SECONDS);
+        try {
+            //when
+            for (int i = 0; i < maxThreadsToHandle; i++) {
+                targetInstance.handleRequest(new TestPayloadRunnable(exceptionsRandom));
+            }
+            waitForAllThreadsToBeHandled.await(10, TimeUnit.SECONDS);
 
-        //then
-        assertTrue(callback.getHandledPayloadsCount() >= threadPoolSize);
-        assertEquals(maxThreadsToHandle - callback.getRejectedPayloadsCount(), callback.getHandledPayloadsCount());
+            //then
+            assertTrue(callback.getHandledPayloadsCount() >= threadPoolSize);
+            assertEquals(maxThreadsToHandle - callback.getRejectedPayloadsCount(), callback.getHandledPayloadsCount());
+        } finally {
+            targetInstance.shutdown();
+        }
     }
 
     private static Stream<Arguments> provideTargetInstances() {

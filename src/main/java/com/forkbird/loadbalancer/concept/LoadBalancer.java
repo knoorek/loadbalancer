@@ -16,7 +16,7 @@ public class LoadBalancer<T extends Payload> {
     }
 
     public void handleRequest(T payload) {
-        loadBalancingStrategy.findHostToHandlePayload(targetInstances).handleRequest(payload);
+        loadBalancingStrategy.findTargetInstanceToHandlePayload(targetInstances).handleRequest(payload);
     }
 
     public void shutdown() {

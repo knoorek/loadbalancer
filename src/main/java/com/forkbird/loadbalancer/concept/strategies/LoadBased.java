@@ -7,10 +7,18 @@ import java.util.List;
 
 public class LoadBased<T extends Payload> implements LoadBalancingStrategy<T> {
 
-    private final float maxDesiredLoad = 0.75f;
+    private final float maxDesiredLoad;
+
+    public LoadBased() {
+        this.maxDesiredLoad = 0.75f;
+    }
+
+    public LoadBased(float maxDesiredLoad) {
+        this.maxDesiredLoad = maxDesiredLoad;
+    }
 
     @Override
-    public TargetInstance<T> findHostToHandlePayload(List<TargetInstance<T>> targetInstances) {
+    public TargetInstance<T> findTargetInstanceToHandlePayload(List<TargetInstance<T>> targetInstances) {
         return targetInstances.stream().reduce((targetHost, targetHost2) -> {
             if (targetHost.getLoad() < maxDesiredLoad) {
                 return targetHost;
@@ -19,26 +27,7 @@ public class LoadBased<T extends Payload> implements LoadBalancingStrategy<T> {
         }).get();
     }
 
-//    private TargetHost getTargetHostLambda(List<TargetHost> targetHosts) {
-//        Optional<TargetHost> targetHost = targetHosts.stream()
-//                .filter(th -> th.getLoad() < maxDesiredLoad).findFirst();
-//        if (targetHost.isPresent()) {
-//            return targetHost.get();
-//        }
-//        return targetHosts.stream()
-//                .filter(th -> th.getLoad() >= maxDesiredLoad)
-//                .min((o1, o2) -> Float.compare(o1.getLoad(), o2.getLoad())).get();
-//    }
-//
-//    private TargetHost getTargetHostFor(List<TargetHost> targetHosts) {
-//        TargetHost minLoadTargetHost = targetHosts.get(0);
-//        for (TargetHost targetHost : targetHosts) {
-//            if (targetHost.getLoad() < maxDesiredLoad) {
-//                return targetHost;
-//            } else {
-//                minLoadTargetHost = Float.compare(minLoadTargetHost.getLoad(), targetHost.getLoad()) == -1 ? minLoadTargetHost : targetHost;
-//            }
-//        }
-//        return minLoadTargetHost;
-//    }
+    public float getMaxDesiredLoad() {
+        return maxDesiredLoad;
+    }
 }

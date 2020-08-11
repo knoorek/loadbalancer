@@ -10,7 +10,7 @@ public class RoundRobin<T extends Payload> implements LoadBalancingStrategy<T> {
     private int lastTargetHostIndex;
 
     @Override
-    public synchronized TargetInstance<T> findHostToHandlePayload(List<TargetInstance<T>> targetInstances) {
+    public synchronized TargetInstance<T> findTargetInstanceToHandlePayload(List<TargetInstance<T>> targetInstances) {
         TargetInstance<T> targetInstance = targetInstances.get(lastTargetHostIndex);
         lastTargetHostIndex = lastTargetHostIndex == targetInstances.size() - 1 ? 0 : ++lastTargetHostIndex;
         return targetInstance;

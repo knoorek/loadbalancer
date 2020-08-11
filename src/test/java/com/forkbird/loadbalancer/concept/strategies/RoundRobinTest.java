@@ -19,9 +19,9 @@ class RoundRobinTest {
         List<TargetInstance<Payload>> targetInstances = Arrays.asList(new TestTargetInstance("1"), new TestTargetInstance("2"));
         //when
         //then
-        assertEquals(targetInstances.get(0), strategy.findHostToHandlePayload(targetInstances));
-        assertEquals(targetInstances.get(1), strategy.findHostToHandlePayload(targetInstances));
-        assertEquals(targetInstances.get(0), strategy.findHostToHandlePayload(targetInstances));
-        assertEquals(targetInstances.get(1), strategy.findHostToHandlePayload(targetInstances));
+        assertEquals(targetInstances.get(0), strategy.findTargetInstanceToHandlePayload(targetInstances));
+        assertEquals(targetInstances.get(1), strategy.findTargetInstanceToHandlePayload(targetInstances));
+        assertEquals(targetInstances.get(0), strategy.findTargetInstanceToHandlePayload(targetInstances));
+        assertEquals(targetInstances.get(1), strategy.findTargetInstanceToHandlePayload(targetInstances));
     }
 }

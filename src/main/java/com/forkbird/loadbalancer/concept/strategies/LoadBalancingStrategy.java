@@ -7,5 +7,5 @@ import java.util.List;
 
 public interface LoadBalancingStrategy<T extends Payload> {
 
-    TargetInstance<T> findHostToHandlePayload(List<TargetInstance<T>> targetInstances);
+    TargetInstance<T> findTargetInstanceToHandlePayload(List<TargetInstance<T>> targetInstances);
 }
